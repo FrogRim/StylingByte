@@ -90,6 +90,13 @@ CNN(합성곱 신경망)은 딥러닝에서 주로 이미지 인식 및 패턴 �
 - 이 층은 특징들의 비선형 조합을 통해 클래스에 대한 확률 분포를 출력한다.
 
 
+`https://m.blog.naver.com/PostView.naver?blogId=koreadeep&logNo=222585045313&proxyReferer=`
+
+위 블로그의 내용을 참고하여 우리는 사용자의 성별 및 나이를 예측하는 사용자 모델을 만들었다.
+
+
+
+
 # File Tree
 ```bash
 ├── _data
