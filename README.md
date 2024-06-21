@@ -27,7 +27,7 @@ Noise :
 
 **Noise**  : 사용자들의 행동을 예측하기 어렵고 직접적인 피드백을 받기 힘들기 때문에 이러한 것들을 고려하여 학습해야한다. 
 
-(사진)
+![image](https://github.com/FrogRim/StylingByte/assets/127326495/badbcdf6-78de-4515-bdb4-6ad945c3e2c9)
 
 기본구성은 2가지의 모델로 구성된다.
  1. Candidate Generation (후보 생성 모델)
@@ -45,7 +45,7 @@ Noise :
 
 이를 통해 설계한 코디 알고리즘의 OverView는 이렇다.
 
-(사진)
+![image](https://github.com/FrogRim/StylingByte/assets/127326495/05d9fe32-548d-432d-87a8-ab13666e6723)
 
 *(AI코디 알고리즘의 전체 OverView)*
 
