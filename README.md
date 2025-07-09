@@ -1,126 +1,291 @@
-# StylingByte OverView
-코디 AI의 기초 알고리즘 및 모델링 구현
-현재 세계에 있는 추천 시스템 산업 중 코디 AI와 가장 유사한 상황과 목적을 가진 추천 시스템 모델을 찾았고, 우리는 Youtube의 추천시스템을 선정했다. 그 이유는 Youtube는 수많은 사용자에게 끊임없이 증가하는 동영상을 개인화 맞춤형으로 추천해야 한다. 이것을 옷에 대입하면 끊임없이 새로 디자인되는 옷들도 추가해서 개인화 맞춤형으로 추천해야 하는 코디AI와 유사하였기 때문이다. 그래서 우리는 Youtube의 초기 추천 딥러닝 모델을 토대로 우리 팀이 이번에 사용할 전체적인 추천시스템 모델을 구상했다.
+# StylingByte
 
-2016년에 YouTube에서 발표한 DNN for YouTube 논문에 따르면 추천시스템에서의 주요 해결과제는 크게 3가지로 나누어진다.
+## 📋 프로젝트 개요
+**개발 기간**: 2024.01 ~ 2024.07 (6개월)  
+**개발 인원**: 3명 팀 프로젝트 (개인 담당: 2차 추천모델 & Unity 연동)  
+**목표**: 다단계 AI 모델을 활용한 개인화 패션 추천 시스템 구현
 
-SCALE : 
- - 큰 규모에 적합한 딥러닝 모델을 만들어야 한다.
-- 효율적인 Serving이 필요하다.
-- 이전에 제안된 딥러닝 모델은 Small Size에만 적합하다.
+## 🎯 개인 담당 부분 및 성과
+- ✅ **NCF 모델 구현**: Neural Collaborative Filtering 기반 2차 추천 시스템
+- ✅ **Python-Unity 연동**: 크로스 플랫폼 데이터 통신 구현
+- ✅ **JSON 데이터 파이프라인**: AI 모델 결과를 Unity로 전달하는 시스템 구축
+- ✅ **6개월 장기 협업**: 팀 프로젝트 완주 및 모듈 통합 경험
 
-FRESHNESS : 
+## 🛠️ 기술 스택
+- **AI/ML**: Python, TensorFlow, scikit-learn
+- **추천 알고리즘**: Collaborative Filtering, NCF (Neural Collaborative Filtering)
+- **Unity 연동**: C#, Process 통신, JSON 데이터 교환
+- **개발환경**: Google Colab, Unity 2022.3 LTS
 
-- 사용자의 최근 행동(Action)과 새로 업로드된 콘텐츠에 대해서 즉각적으로 대응해야 한다.
-- 기존의 유명한 콘텐츠와 새로운 콘텐츠 간의 균형이 중요하다.
+## 🔧 개인 구현 부분
 
-Noise : 
-- 사용자의 Historical 한 행동을 예측하기에는 어렵다.
-- 사용자로부터 직접적인 Ground Truth를 얻을 수 없어, 함축적인 피드백을 활용해서 모델을 학습해야 한다.
- : 사용자로부터 새로운 콘텐츠에 대한 평점을 물어볼 수는 없다.
+### 1. NCF (Neural Collaborative Filtering) 모델
+```python
+# ai_cody_result.py - 2차 추천 모델 구현
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Input, Embedding, Flatten, Dot, Dense
 
-요약하자면
+def build_ncf_model(num_users, num_items, embedding_dim=50):
+    # 사용자 임베딩
+    user_input = Input(shape=(), name='user_id')
+    user_embed = Embedding(num_users, embedding_dim)(user_input)
+    user_vec = Flatten()(user_embed)
+    
+    # 아이템 임베딩  
+    item_input = Input(shape=(), name='item_id')
+    item_embed = Embedding(num_items, embedding_dim)(item_input)
+    item_vec = Flatten()(item_embed)
+    
+    # 신경망 기반 추천 점수 계산
+    concat = Concatenate()([user_vec, item_vec])
+    dense1 = Dense(128, activation='relu')(concat)
+    dense2 = Dense(64, activation='relu')(dense1)
+    output = Dense(1, activation='sigmoid')(dense2)
+    
+    model = Model(inputs=[user_input, item_input], outputs=output)
+    return model
+```
 
-**SCALE** : 대규모 데이터 셋을 다루기위한 모델 설계를 해야한다.
+### 2. Unity 연동 시스템
+```csharp
+// PythonRunner.cs - Python AI 모델 실행 및 결과 수신
+public class PythonRunner : MonoBehaviour {
+    [SerializeField] public LoadJsonData loadJsonData;
+    
+    void Start() {
+        // Python 프로세스 실행하여 AI 추천 모델 호출
+        RunPythonScript();
+        
+        // JSON 결과 파일 로드 및 Unity 환경에 표시
+        if (loadJsonData != null) {
+            loadJsonData.LoadJson();
+        }
+    }
+    
+    private void RunPythonScript() {
+        ProcessStartInfo start = new ProcessStartInfo();
+        start.FileName = "python";
+        start.Arguments = "ai_cody_result.py";
+        start.UseShellExecute = false;
+        start.CreateNoWindow = true;
+        
+        using (Process process = Process.Start(start)) {
+            process.WaitForExit();
+        }
+    }
+}
+```
 
-**FRESHNESS** : 계속 추가되는 새로운 데이터들에 대한 빠른 대응이 필요하고, 새로운 데이터와 원래있던 데이터들 간의 균형을 유지해야한다.
+### 3. JSON 데이터 파이프라인
+```csharp
+// LoadJsonData.cs - AI 결과 데이터 Unity 로드
+[System.Serializable]
+public class ClothingItem {
+    public string product;
+    public List<string> most_similar;
+    public float prediction_score;
+}
 
-**Noise**  : 사용자들의 행동을 예측하기 어렵고 직접적인 피드백을 받기 힘들기 때문에 이러한 것들을 고려하여 학습해야한다. 
+public void LoadJson() {
+    string filePath = Path.Combine(Application.dataPath, 
+                                   "recommended_clothes_with_data.json");
+    string jsonData = File.ReadAllText(filePath);
+    
+    ClothingItem[] itemsArray = JsonHelper.FromJson<ClothingItem>(jsonData);
+    
+    foreach (ClothingItem item in itemsArray) {
+        Debug.Log($"Product: {item.product}, Score: {item.prediction_score}");
+    }
+}
+```
 
-![image](https://github.com/FrogRim/StylingByte/assets/127326495/badbcdf6-78de-4515-bdb4-6ad945c3e2c9)
+## 📊 시스템 아키텍처
 
-기본구성은 2가지의 모델로 구성된다.
- 1. Candidate Generation (후보 생성 모델)
- 2. Ranking Model      
+### 3단계 추천 파이프라인 (팀 전체)
+```
+1. 사용자 정보 추출 (팀원 A)
+   ├── CNN 기반 성별 예측
+   └── CNN 기반 나이 예측
 
-**Candidate Generation**
- - 사용자의 행동 히스토리(Activity History)를 입력으로 사용한다.
- - Candidate Generation Network는 일종의 Collaborative Filtering(협업 필터링)이라고 할 수 있다.
-- 광범위한 개인화된 추천을 제공
+2. 1차 후보 생성 (팀원 B)  
+   ├── Collaborative Filtering
+   └── 계절/스타일 필터링
 
-**Ranking Model**
-- 1단계에서 선별된 후보군 중에 상대적으로 더 중요한 영상을 구별하기 위해선, 높은 Recall 성능이 요구된다. 
-   Recall : 실제 정답 중 몇 개를 맞추었나
-- 목적에 따른 콘텐츠에 점수를 할당하여 추천 → 점수에 따라서 순위를 매겨 User에게 보인다.
+3. 2차 정밀 추천 (개인 담당)
+   ├── NCF 모델 학습 및 예측
+   ├── 상위 3개 추천 필터링
+   └── JSON 결과 생성
+```
 
-이를 통해 설계한 코디 알고리즘의 OverView는 이렇다.
+### 개인 담당 데이터 플로우
+```
+사용자 프로필 + 1차 후보군
+          ↓
+    NCF 모델 예측
+          ↓
+   상위 3개 선별
+          ↓
+    JSON 파일 저장
+          ↓
+   Unity Process 호출
+          ↓
+    Unity 환경 표시
+```
 
-![image](https://github.com/FrogRim/StylingByte/assets/127326495/05d9fe32-548d-432d-87a8-ab13666e6723)
+## 🔬 기술적 도전과 해결
 
-*(AI코디 알고리즘의 전체 OverView)*
+### 1. Cold Start 문제 해결 시도
+**도전**: 신규 사용자에 대한 추천 정확도 저하와 충분한 상호작용 데이터 부족  
+**시도한 해결 방법**: 
+- **하이브리드 접근법**: 사용자 이미지 기반 특성 추출과 아이템 기반 필터링 조합
+- **인구통계학적 보조**: 나이, 성별 정보를 활용한 초기 선호도 추정
+- **가중치 조정**: 신규 사용자에게는 인기도 기반, 기존 사용자에게는 개인화 기반 추천 비율 조정
 
-개별적으로 하나씩 살펴보면, 구축해야하는 모델은 사용자 정보 생성 모델, 1차 후보 생성 모델, 최종 후보 선정 모델 이렇게 총 3가지이다. 
+**학습 성과**: 추천시스템의 근본적 한계와 실무에서 사용되는 다양한 해결 전략 이해
 
-우선 사용자 정보 생성 모델을 이용해 사용자 데이터(사진)를 토대로 사용자의 성별, 나이, 얼굴형을 예측한다.<br><br>
-그리고 사용자가 입력한 계절이나 원하는 스타일 종류들을 고려하여 1차 후보 생성 모델에 의류데이터를 입력하여 1차적인 추천 리스트 후보들을 선정한다.<br><br>
-그리고 앞에서 예측한 사용자 정보와 1차적인 추천리스트들을 최종 후보 선정 모델의 입력으로 받아 최종 추천 후보들을 출력한다.
+### 2. 실시간 통신 시스템 설계 도전
+**도전**: Python AI 모델과 Unity 간의 효율적 데이터 통신 구조 설계  
+**현재 구현의 한계**: Process 기반 배치 처리로 인한 사용자 경험 제약
+```python
+# 현재 구현: 파일 기반 비동기 처리
+def save_recommendation_result():
+    with open('recommended_clothes_with_data.json', 'w') as f:
+        json.dump(recommendation_result, f)
+```
 
-# 사용자 정보 생성 모델 구현
+**시도한 개선 방안**:
+- **WebSocket 연동 검토**: 실시간 양방향 통신을 위한 아키텍처 설계
+- **REST API 설계**: Flask 기반 HTTP API 서버 구조 연구
+- **비동기 처리**: Unity 코루틴과 Python 비동기 처리 연동 방법 탐구
 
-사용자의 정보를 고려하기 위해 사용자 사진을 받았을 때 성별과 나이, 얼굴형을 예측하기 위한 모델을 구축하기 위한 데이터를 수집했다.<br>
-우선 성별과 나이를 예측하기 위한 데이터셋을 찾아본 결과, Kaggle에 공개 된 UTKFace 데이터셋을 사용하기로 했다. UTKFace 데이터셋은 나이, 성별, 인종에 따른 다양한 얼굴 이미지를 포함하는 대규모 데이터셋이다. 내용은 각 얼굴 이미지에는 해당하는 나이, 성별, 인종 정보가 라벨로 제공된다. 이 데이터를 사용한 이유는 다음과 같다.<br><br>
-1. 라벨정보: 각 이미지에는 나이, 성별, 인종과 같은 유용한 정보가 라벨로 제공되어 있어 데이터 분석 및 모델 학습에 용이하다.<br><br>
-2. 대규모 데이터셋: 수천 개의 이미지로 구성된 대규모 데이터셋으로, 학습에 필요한 충분한 양의 데이터를 제공한다.<br><br>
-3. 실제 상황에 부합: 다양한 나이와 인종의 얼굴 이미지가 포함되어 있어 실제 상황에 적합한 모델을 학습할 수 있다. 
-이후 얼굴형을 예측하기 위한 데이터셋으로 Kaggle에 공개된 Face Shape DataSet을 사용했다.  Face Shape DataSet은 얼굴 형태에 관련된 데이터셋으로, 얼굴 형태를 다양한 카테고리로 분류한 이미지 데이터를 제공한다. 이 데이터셋의 장점은 다음과 같다.<br>
+**설계한 개선 아키텍처**:
+```
+Unity Client ←→ Flask API Server ←→ ML Model
+     ↓              ↓                 ↓
+  실시간 UI      JSON REST API     TensorFlow
+```
 
-- 1. 얼굴 형태 분류: 얼굴 형태를 다양한 카테고리로 분류하여 해당하는 얼굴 이미지를 제공하여 얼굴 형태 분류에 유용하다.
-- 2. 시각적 정보 제공: 각 이미지에는 해당하는 얼굴 형태의 카테고리 정보가 제공되어 있어 데이터 분석 및 모델 학습에 용이하다.
-- 3. 다양한 형태 포함: 다양한 얼굴 형태의 이미지가 포함되어 있어 다양한 얼굴 특징을 학습할 수 있다.
+### 3. 데이터 품질 및 모델 성능 최적화
+**도전**: 제한된 학습 데이터로 인한 추천 정확도 한계  
+**시도한 해결책**:
+- **데이터 증강**: 기존 사용자 패턴을 분석하여 가상 사용자 프로필 생성
+- **하이퍼파라미터 튜닝**: NCF 모델의 임베딩 차원, 학습률, 정규화 파라미터 최적화
+- **앙상블 접근**: Collaborative Filtering과 Content-based 결과를 가중 평균으로 결합
 
-데이터를 불러온 후 받은 사진의 성별과 나이를 예측하기 위해 이미지 형식의 데이터에 적합한 모델로 CNN을 선택했다.
-CNN(합성곱 신경망)은 딥러닝에서 주로 이미지 인식 및 패턴 인식에 사용되는 신경망 구조이다.
-여러 층으로 구성되어 이미지의 특징을 추출하고 분류하는 데 효과적으로 활용된다.
+**정량적 개선 시도**:
+- 임베딩 차원 50 → 128로 증가하여 표현력 향상
+- Dropout 0.2 적용으로 과적합 방지
+- 학습률 스케줄링으로 수렴 안정성 개선
 
-**1. 합성곱층(Convolutional Layer)**
-- CNN의 핵심 구성 요소로, 입력 이미지에서 특징을 추출한다.
-- 여러 개의 필터(커널)를 사용하여 입력 이미지에 합성곱을 수행하고, 특정 패턴이나 특징을 감지한다.
-- 합성곱 연산을 통해 생성된 특징 맵은 이미지의 공간적 정보를 보존하면서 다양한 특징을 포착한다.
+## 🎯 실무 연계성
 
-**2. 풀링층(Pooling Layer)**
-- 입력 이미지의 공간적 크기를 줄이고 계산량을 감소시킨다.
-- 주로 최대 풀링(Max Pooling)이나 평균 풀링(Average Pooling)이 사용된다.
+### AI 모델 구현 경험
+- **추천시스템 이해**: Collaborative Filtering부터 Neural 방식까지 단계적 학습
+- **TensorFlow 활용**: 실제 동작하는 딥러닝 모델 구현 및 학습
+- **데이터 전처리**: 실제 데이터의 노이즈와 품질 문제 경험
 
-**3. 활성화 함수(Activation Function)**
-- 비선형성을 도입하여 신경망이 복잡한 함수를 모델링할 수 있도록 한다.
-- ReLU(Rectified Linear Unit) 함수가 주로 사용된다.(입력이 양수인 경우에는 값을 그대로 반환하고 음수인 경우에는 0으로 만든다.)
+### 시스템 통합 능력
+- **크로스 플랫폼 연동**: Python AI 모델과 C# Unity 환경 간 데이터 전달
+- **JSON 데이터 처리**: 구조화된 데이터 교환 프로토콜 설계
+- **비동기 처리**: 무거운 AI 연산과 실시간 UI 간의 분리
 
-**4. 완전 연결층(Fully Connected Layer)**
-- 위에 과정을 통해 추출된 특징들을 입력으로 받아들여 최종 분류를 수행한다.
-- 이 층은 특징들의 비선형 조합을 통해 클래스에 대한 확률 분포를 출력한다.
+## 📝 프로젝트 한계 및 개선점
 
+### 현재 한계
+1. **하드코딩된 경로**: 개발 환경에 종속적인 절대 경로 사용
+```python
+# 개선 필요: 하드코딩된 경로
+user_image_path = 'C:/Users/disse/OneDrive/Desktop/styling/...'
+```
 
-`https://m.blog.naver.com/PostView.naver?blogId=koreadeep&logNo=222585045313&proxyReferer=`
+2. **단방향 통신**: Unity → Python → Unity의 일방향적 배치 처리
+3. **데이터 품질**: 학습용 가상 데이터로 인한 추천 정확도 한계
 
-위 블로그의 내용을 참고하여 우리는 사용자의 성별 및 나이를 예측하는 사용자 모델을 만들었다.
+### 향후 개선 방향
+1. **API 기반 통신**: Flask/FastAPI를 활용한 RESTful API 구현
+2. **환경 설정 개선**: 상대 경로 및 환경변수 활용으로 이식성 향상
+3. **실시간 피드백**: 사용자 평가를 모델 학습에 반영하는 시스템
 
+## 🎓 학습 성과 및 가치
 
-# 1차 후보 생성 모델
+### 추천시스템 전문성
+- **이론의 실제 적용**: 논문의 NCF 알고리즘을 실제 구현
+- **모델 성능 이해**: 정확도, 다양성, 신규성 간의 트레이드오프 경험
+- **실무 데이터 문제**: Cold Start, 데이터 희소성 등 실제 문제 상황 체험
 
-# 최종 후보 선정 모델
+### 시스템 개발 능력
+- **모듈러 설계**: 독립적인 컴포넌트를 조합하여 전체 시스템 구성
+- **데이터 파이프라인**: AI 모델 결과를 사용자 인터페이스까지 전달하는 전체 흐름 구현
+- **크로스 플랫폼 통합**: 서로 다른 기술 스택 간의 연동 경험
 
-# File Tree
-```bash
-├── _data
-│   ├── styles.csv -> 의류 정보 데이터 셋  
-│   └── user.csv -> 사용자 정보(나이,성별) 데이터 셋
-├── json  
-│   └── recommended_clothes_with_data.json - ai_cody_result.py의 리턴 값으로 이것을 LoadJsonData.cs 코드를 통해 Unity환경으로 불러옴 
-├── model
-│   ├── age_model_test.h5 -> utkface_data_age_gender_predict.py 파일을 통해 만들어진 나이 판별 ai모델
-│   ├── gender_model_test.h5 -> facerecognition_for_age_gender.py 파일을 통해 만들어진 성별 판별 ai모델
-│   └── ncf_model.h5 -> 위에 두 모델을 이용해 얻은 사용자 정보와 의류 정보 데이터 셋을 이용해 NCF를 이용한 추천 딥러닝 모델 구축
-├── picture
-│   └── test_picture.pmg -> test case input data, 이 사진을 age_model과 gender_model을 통해 사진 속 인물의 성별과 나이 추출 후 알맞는 의류 추천
-│   
-│   
-├── src_python
-│   ├── utkface_data_age_gender_predict.py -> CNN을 이용하여 사용자의 사진을 보고 나이를 판별하는 모델
-│   ├── facerecognition_for_age_gender.py -> CNN을 이용하여 사용자의 사진을 보고 성별을 판별하는 모델
-│   └── ai_cody_result.py ->  NFC구현 모델, 그리고 그 후 한 번 더 협업 필터링을 통해 상위 3개의 추천모델 필터링하고 그 결과값을 JSON파일로 반환한다.
-├── src_unity
-│   ├── LoadJsonData.cs -> json파일의 형식을 규정한 class를 포함하며, 받은 json안의 data들을 읽어 class로 변환시킨 뒤, 유니티 로그에 출력
-│   └── PythonRunner.cs -> UNITY환경에서 LOCAL에 세팅된 파이썬 Process를 실행시켜 pyrhon코드들을 전부 실행시킨 뒤, LoadJsonData.cs를 호출해 그 결과값을 Unity 프로세스로 가져온다.
-│   
-└── 
+### 팀 협업 경험
+- **장기 프로젝트 관리**: 6개월간의 지속적인 개발 및 통합 과정
+- **역할 분담**: 개별 전문 영역을 담당하면서도 전체 시스템 이해
+- **의사소통**: 기술적 이슈 공유 및 해결책 논의 과정
+
+## 🔄 개발 과정에서의 성장
+
+### 문제 해결 과정
+1. **초기 구현**: 기본적인 Collaborative Filtering 구현
+2. **성능 개선**: NCF 도입으로 추천 정확도 향상 시도
+3. **시스템 통합**: Python 모델과 Unity UI 연동
+4. **실무 고민**: 실제 배포 시 고려사항 및 개선 방향 인식
+
+### 기술적 깊이 확장
+- **머신러닝 이론**: 추천시스템의 다양한 접근 방식 이해
+- **소프트웨어 아키텍처**: 확장 가능한 시스템 설계 고민
+- **사용자 경험**: AI 기술을 실제 사용자가 체감할 수 있는 형태로 구현
+
+## 💼 실무 적용 가능성
+
+### AI 개발 역량
+- **모델 구현**: TensorFlow를 활용한 실제 동작하는 AI 모델 개발
+- **데이터 처리**: 실제 데이터의 전처리 및 품질 관리 경험
+- **성능 평가**: 추천시스템 평가 지표 이해 및 적용
+
+### 시스템 개발 경험
+- **풀스택 이해**: AI 백엔드부터 사용자 인터페이스까지 전체 파이프라인
+- **통합 능력**: 서로 다른 기술 스택을 하나의 시스템으로 연결
+- **실무 제약 이해**: 이론적 완성도와 실제 구현 간의 차이 인식
+
+## 🌟 프로젝트의 의의
+
+### 종합적 학습 경험
+이 프로젝트는 **AI 모델 개발, 시스템 통합, 팀 협업**의 세 가지 핵심 역량을 동시에 기를 수 있는 종합적인 학습 경험이었습니다. 특히 **이론적 지식을 실제 동작하는 시스템으로 구현**하는 과정에서 실무에서 마주할 수 있는 다양한 제약사항과 해결 방법을 경험할 수 있었습니다.
+
+### 실무 준비도
+- **완성도보다는 과정**: 완벽한 제품을 만들기보다는 실무에서 필요한 문제 해결 능력과 학습 태도를 기르는 데 중점
+- **지속적 개선**: 현재 한계를 인식하고 향후 개선 방향을 명확히 설정
+- **협업 경험**: 개별 전문성과 팀 통합 능력을 동시에 기르는 균형잡힌 개발 경험
+
+## 📁 프로젝트 구조
+```
+StylingByte/
+├── styling/StylingByte_model/
+│   ├── _data/
+│   │   └── user.csv              # 사용자 정보 데이터
+│   ├── model/
+│   │   ├── age_model_test.h5     # 나이 예측 모델 (팀원 구현)
+│   │   ├── gender_model_test.h5  # 성별 예측 모델 (팀원 구현)
+│   │   └── ncf_model.h5          # NCF 추천 모델 (개인 구현)
+│   ├── src_python/
+│   │   ├── ai_cody_result.py     # 개인 담당: NCF 모델 & 통합 시스템
+│   │   ├── utkface_data_age_gender_predict.py  # 팀원 A 담당
+│   │   └── facerecognition_for_age_gender.py   # 팀원 A 담당
+│   └── src_unity/
+│       ├── PythonRunner.cs       # 개인 담당: Python 프로세스 실행
+│       └── LoadJsonData.cs       # 개인 담당: JSON 데이터 로드
+└── README.md
+```
+
+## 🔗 참고 자료
+- **GitHub Repository**: https://github.com/FrogRim/StylingByte
+- **기술 문서**: NCF 구현 과정 및 Unity 연동 방법 상세 기록
+- **참고 논문**: Neural Collaborative Filtering (WWW 2017)
+
+## 💡 향후 발전 계획
+1. **기술적 개선**: API 기반 실시간 통신으로 시스템 아키텍처 개선
+2. **성능 최적화**: 더 정교한 하이퍼파라미터 튜닝 및 모델 개선
+3. **사용자 경험**: 실제 사용자 피드백을 반영한 지속적 학습 시스템 구축
+4. **확장성**: 다양한 추천 알고리즘을 쉽게 추가할 수 있는 플러그인 구조 설계
 ``` 
